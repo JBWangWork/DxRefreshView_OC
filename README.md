@@ -1,8 +1,5 @@
 # DxRefreshView_OC
 
-# DxRefreshView
-
-
 模仿锤子手机的下拉刷新效果
 
 demo:
@@ -39,3 +36,4 @@ refreshHeader.actionHandler = ^{
 ```Swift
 [_scrollView removeScrollObserver];
 ```
+[swift版本](https://github.com/StevenDXC/DxRefreshView) 
