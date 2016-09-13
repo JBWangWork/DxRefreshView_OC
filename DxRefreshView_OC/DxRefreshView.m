@@ -122,8 +122,8 @@
     if(_refreshLayer.state == LOADING){
         return;
     }
-    if(scollView.contentOffset.y < 0){
-        CGFloat progress = -scollView.contentOffset.y/48.0;
+    if(scollView.contentOffset.y < -scollView.contentInset.top){
+        CGFloat progress = -scollView.contentOffset.y+scollView.contentInset.top/48.0;
         if(self.frame.size.height < 48){
             self.frame = CGRectMake(0, 0, CGRectGetMaxX(scollView.bounds), -scollView.contentOffset.y);
             _textLabel.layer.opacity = progress;
@@ -134,10 +134,10 @@
             self.frame = CGRectMake(0, 0, CGRectGetMaxX(scollView.bounds), 48);
             [self setReleaseStateText];
         }
-        _refreshLayer.progress = progress;
+        _refreshLayer.contentOffsetY = -scollView.contentOffset.y;
     }
     
-    if(scollView.contentOffset.y == 0){
+    if(scollView.contentOffset.y == -scollView.contentInset.top){
         [self startLoadingAniamtion];
     }
 }

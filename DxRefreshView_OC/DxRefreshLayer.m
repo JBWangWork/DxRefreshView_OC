@@ -9,7 +9,7 @@
 #import "DxRefreshLayer.h"
 
 const static CGFloat MAX_ANGLE = 150.0f;
-const static CGFloat ARROW_LENGTH = 2.0f;
+const static CGFloat ARROW_LENGTH = 3.0f;
 
 @interface DxRefreshLayer()
 
@@ -17,6 +17,7 @@ const static CGFloat ARROW_LENGTH = 2.0f;
 @property(nonatomic,assign) CGFloat left,top,right,moveDistance;
 @property(nonatomic,assign) CGFloat centerX,centerY;
 @property(nonatomic,assign) CGFloat angle;
+@property(nonatomic,assign) CGFloat pullDownAngle;
 
 @end
 
@@ -28,6 +29,7 @@ const static CGFloat ARROW_LENGTH = 2.0f;
     if(self){
         _lineWidth = 1.3f;
         _arcRadius = 6.0f;
+        _pullDownAngle = 0;
     }
     return self;
 }
@@ -56,7 +58,7 @@ const static CGFloat ARROW_LENGTH = 2.0f;
         [self drawLineToArcWithContext:ctx];
     }
     
-    if(_state == RELEASED || _state == LOADING){
+    if(_state == PULL_TO_ROTATE || _state == RELEASED || _state == LOADING){
         [self drawReleaseStateWithContext:ctx];
     }
     CGContextDrawPath(ctx,kCGPathStroke);
@@ -68,6 +70,10 @@ const static CGFloat ARROW_LENGTH = 2.0f;
 
 -(void)startLoaingAnimation
 {
+    if(_state == PULL_TO_ROTATE){
+        _state = RELEASED;
+    }
+    
     if(_state != RELEASED || _state == LOADING){
         return;
     }
@@ -85,7 +91,7 @@ const static CGFloat ARROW_LENGTH = 2.0f;
 
 -(void)reset
 {
-    self.progress = 0;
+    self.contentOffsetY = 0;
     _angle = 0;
     _state = PULL_TO_TRANSITION;
     [self setNeedsDisplay];
@@ -110,23 +116,32 @@ const static CGFloat ARROW_LENGTH = 2.0f;
     }
 }
 
--(void)setProgress:(CGFloat)progress
+-(void)setContentOffsetY:(CGFloat)contentOffsetY
 {
-    _progress = progress;
-    if(_state == PULL_TO_TRANSITION && _progress > 0.5){
+    _contentOffsetY = contentOffsetY;
+    CGFloat progress = _contentOffsetY/48.0;
+    if(_state == PULL_TO_TRANSITION && _contentOffsetY > 0.5){
         _state = PULL_TO_ARC;
     }
     
-    if(_state == PULL_TO_ARC && _progress <= 0.5){
+    if(_state == PULL_TO_ARC && progress <= 0.5){
         _state = PULL_TO_TRANSITION;
     }
     
     if(_state == PULL_TO_ARC){
-        _angle = (_progress-0.5)*2*MAX_ANGLE;
+        _angle = (progress-0.5)*2*MAX_ANGLE;
         if(_angle >= MAX_ANGLE){
-            _state = RELEASED;
+            _state = PULL_TO_ROTATE;
         }
     }
+    
+    if(_state == PULL_TO_ROTATE){
+        if(progress <= 1){
+            return;
+        }
+        _pullDownAngle = (progress-1.0)*180;
+    }
+    
     [self setNeedsDisplay];
 }
 
@@ -148,8 +163,8 @@ const static CGFloat ARROW_LENGTH = 2.0f;
 {
     [self initData];
     
-    CGFloat leftLineY = self.bounds.size.height+2.0f-_moveDistance*_progress*2;
-    CGFloat rightLineY = -_lineLength-2+_moveDistance*_progress*2;
+    CGFloat leftLineY = self.bounds.size.height+2.0f-_moveDistance*_contentOffsetY/48.0*2;
+    CGFloat rightLineY = -_lineLength-2+_moveDistance*_contentOffsetY/48.0*2;
     
     CGContextMoveToPoint(ctx, _left, leftLineY);
     CGContextAddLineToPoint(ctx, _left, leftLineY+_lineLength);
@@ -208,31 +223,46 @@ const static CGFloat ARROW_LENGTH = 2.0f;
 
 -(void)drawReleaseStateWithContext:(CGContextRef)ctx
 {
-    CGFloat radian = M_PI/180.0*(180+MAX_ANGLE);
-    CGFloat rx = cos(radian)*_arcRadius;
-    CGFloat ry = sin(radian)*_arcRadius;
     
-    CGFloat rax = _centerX + rx - ARROW_LENGTH*sin(M_PI);
-    CGFloat ray = _centerY + ry + ARROW_LENGTH*cos(M_PI);
+    CGFloat startRadian = M_PI+[self angleToRadian:_pullDownAngle];
+    CGFloat endRadian = MAX_ANGLE/180.0*M_PI-M_PI+[self angleToRadian:_pullDownAngle];
     
-    CGFloat radian2 = M_PI/180.0*MAX_ANGLE;
-    CGFloat rx2 = cos(radian2)*_arcRadius;
-    CGFloat ry2 = sin(radian2)*_arcRadius;
+    CGFloat startRadian2 = [self angleToRadian:_pullDownAngle];
+    CGFloat endRadian2 = MAX_ANGLE/180.0*M_PI+startRadian2;
     
-    CGFloat ra2x = _centerX + rx2 + ARROW_LENGTH*cos(90/180.0 * M_PI);
-    CGFloat ra2y = _centerY + ry2 + ARROW_LENGTH*sin(90/180.0 * M_PI);
+    CGFloat rax = [self getRadianX:endRadian] - ARROW_LENGTH*sin([self angleToRadian:MAX_ANGLE+_pullDownAngle+30]);
+    CGFloat ray = [self getRadianY:endRadian] + ARROW_LENGTH*cos([self angleToRadian:MAX_ANGLE+_pullDownAngle+30]);
+    
+    
+    CGFloat ra2x = [self getRadianX:endRadian2] + ARROW_LENGTH*cos([self angleToRadian:MAX_ANGLE+_pullDownAngle-60]);
+    CGFloat ra2y = [self getRadianY:endRadian2] + ARROW_LENGTH*sin([self angleToRadian:MAX_ANGLE+_pullDownAngle-60]);
     
     CGContextMoveToPoint(ctx,rax,ray);
-    CGContextAddLineToPoint(ctx,_centerX + rx,_centerY + ry);
+    CGContextAddLineToPoint(ctx,[self getRadianX:endRadian],[self getRadianY:endRadian]);
     
     CGContextMoveToPoint(ctx,ra2x,ra2y);
-    CGContextAddLineToPoint(ctx,_centerX + rx2,_centerY+ry2);
+    CGContextAddLineToPoint(ctx,[self getRadianX:endRadian2],[self getRadianY:endRadian2]);
     
-    CGContextMoveToPoint(ctx,_left,_centerY);
-    CGContextAddArc(ctx,_centerX,_centerY,_arcRadius,M_PI,MAX_ANGLE/180.0*M_PI-M_PI,false);
+    CGContextMoveToPoint(ctx,[self getRadianX:startRadian],[self getRadianY:startRadian]);
+    CGContextAddArc(ctx,_centerX,_centerY,_arcRadius,startRadian,endRadian,false);
     
-    CGContextMoveToPoint(ctx,_centerX+_arcRadius,_centerY);
-    CGContextAddArc(ctx,_centerX,_centerY,_arcRadius, 0, MAX_ANGLE/180.0*M_PI,false);
+    CGContextMoveToPoint(ctx,[self getRadianX:startRadian2],[self getRadianY:startRadian2]);
+    CGContextAddArc(ctx,_centerX,_centerY,_arcRadius, startRadian2, endRadian2,false);
+}
+
+-(CGFloat)angleToRadian:(CGFloat)angle
+{
+    return angle / 180.0 * M_PI;
+}
+
+-(CGFloat)getRadianX:(CGFloat)radian
+{
+    return _centerX + cos(radian)*_arcRadius;
+}
+
+-(CGFloat)getRadianY:(CGFloat)radian
+{
+    return _centerY + sin(radian)*_arcRadius;
 }
 
 

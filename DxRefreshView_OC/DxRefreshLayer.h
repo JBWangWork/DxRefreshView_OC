@@ -12,15 +12,16 @@
 typedef NS_ENUM(NSInteger, LayerState) {
     PULL_TO_TRANSITION = 0,
     PULL_TO_ARC = 1,
-    RELEASED = 2,
-    LOADING = 3
+    PULL_TO_ROTATE = 2,
+    RELEASED = 3,
+    LOADING = 4
 };
 
 @interface DxRefreshLayer : CALayer
 
 @property(nonatomic,assign) LayerState state;
 @property(nonatomic,strong) UIColor *color;
-@property(nonatomic,assign) CGFloat progress;
+@property(nonatomic,assign) CGFloat contentOffsetY;
 @property(nonatomic,assign) CGFloat lineWidth;
 @property(nonatomic,assign) CGFloat arcRadius;
 
