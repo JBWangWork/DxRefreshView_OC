@@ -23,6 +23,7 @@ static const char RefreshHeaderKey = 'R';
                              refreshHeader, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [self didChangeValueForKey:@"refreshHeader"];
     [self addObserver:refreshHeader forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionNew context:nil];
+    [self addObserver:refreshHeader forKeyPath:@"contentInset" options:NSKeyValueObservingOptionNew context:nil];
 }
 
 - (DxRefreshView*)refreshHeader
@@ -33,6 +34,8 @@ static const char RefreshHeaderKey = 'R';
 -(void)removeScrollObserver
 {
     [self removeObserver:self.refreshHeader forKeyPath:@"contentOffset"];
+    [self removeObserver:self.refreshHeader forKeyPath:@"contentInset"];
 }
+
 
 @end

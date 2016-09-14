@@ -14,7 +14,6 @@ typedef void(^ActionHandler)(void);
 @interface DxRefreshView : UIView
 
 @property(nonatomic,copy) ActionHandler  actionHandler;
-@property(nonatomic,strong) DxRefreshLayer  *refreshLayer;
 @property(nonatomic,strong) UIColor  *color;
 
 -(void)beginRefreshing;

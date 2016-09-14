@@ -2,7 +2,7 @@
 //  DxRefreshLayer.h
 //  DxRefreshView_OC
 //
-//  Created by Miutrip on 2016/9/13.
+//  Created by dx on 2016/9/13.
 //  Copyright © 2016年 dx. All rights reserved.
 //
 
