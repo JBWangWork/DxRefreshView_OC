@@ -11,12 +11,15 @@
 
 const static CGFloat HEADER_VIEW_HEIGHT = 64.0;
 
+#define PULL_TEXT       @"下拉刷新数据..."
+#define RELEASR_TEXT    @"释放刷新数据..."
+#define REFESHING_TEXT  @"正在刷新数据..."
 
 @interface DxRefreshView()
 
 @property(nonatomic,strong) UILabel *textLabel;
 @property(nonatomic,assign) CGFloat originInsetTop;
-@property(nonatomic,strong) DxRefreshLayer  *refreshLayer;
+@property(nonatomic,strong) DxRefreshLayer *refreshLayer;
 
 @end
 
@@ -93,17 +96,21 @@ const static CGFloat HEADER_VIEW_HEIGHT = 64.0;
 
 -(void)setPullStateText
 {
-    _textLabel.text = @"下拉刷新数据...";
+    if(![_textLabel.text isEqualToString:PULL_TEXT]){
+        _textLabel.text = PULL_TEXT;
+    }
 }
 
 -(void)setRefreshingStateText
 {
-    _textLabel.text = @"正在刷新数据...";
+    _textLabel.text = REFESHING_TEXT;
 }
 
 -(void)setReleaseStateText
 {
-    _textLabel.text = @"释放刷新数据...";
+    if(![_textLabel.text isEqualToString:RELEASR_TEXT]){
+        _textLabel.text = RELEASR_TEXT;
+    }
 }
 
 -(void)setColor:(UIColor *)color
@@ -115,6 +122,9 @@ const static CGFloat HEADER_VIEW_HEIGHT = 64.0;
 
 -(void)startLoadingAniamtion
 {
+    if(_refreshLayer.state == LOADING){
+        return;
+    }
     [_refreshLayer startLoaingAnimation];
     [self setRefreshingStateText];
     if(_actionHandler){
@@ -122,49 +132,42 @@ const static CGFloat HEADER_VIEW_HEIGHT = 64.0;
     }
 }
 
-- (void)DidScrollWithScrollView:(UIScrollView*)scollView
+- (void)didScrollWithScrollView:(UIScrollView*)scrollView
 {
     if(_refreshLayer.state == LOADING || _originInsetTop == -1){
         return;
     }
-    
-    if(scollView.contentOffset.y >= -(_originInsetTop+HEADER_VIEW_HEIGHT) && _refreshLayer.state == PULL_TO_ROTATE){
-        [self setScrollViewContentInsetForLoading:scollView];
+
+    if(-scrollView.contentOffset.y >= _originInsetTop + HEADER_VIEW_HEIGHT && !scrollView.isDragging){
+        [self setScrollViewContentInsetForLoading:scrollView];
         [self startLoadingAniamtion];
         return;
     }
     
-    if(scollView.contentOffset.y < -_originInsetTop){
-        _refreshLayer.contentOffsetY = -scollView.contentOffset.y-_originInsetTop;
-        CGFloat progress = (-scollView.contentOffset.y+_originInsetTop)/HEADER_VIEW_HEIGHT;
-        if(self.frame.size.height < HEADER_VIEW_HEIGHT){
-            CGFloat height = -scollView.contentOffset.y-_originInsetTop;
-            self.frame = CGRectMake(0, -height, CGRectGetMaxX(scollView.bounds), height);
-            _textLabel.frame = CGRectMake(_textLabel.frame.origin.x, height/2-7, _textLabel.frame.size.width, 14);
-            _refreshLayer.frame = CGRectMake(_refreshLayer.frame.origin.x, height/2-HEADER_VIEW_HEIGHT/2, _refreshLayer.frame.size.width, _refreshLayer.frame.size.height);
-            _textLabel.layer.opacity = progress;
-            return;
-        }
-        
-        if(progress > 1){
-            _textLabel.layer.opacity = 1;
-            self.frame = CGRectMake(0, -HEADER_VIEW_HEIGHT, CGRectGetMaxX(scollView.bounds), HEADER_VIEW_HEIGHT);
-            _textLabel.frame = CGRectMake(_textLabel.frame.origin.x, (HEADER_VIEW_HEIGHT-14)/2, _textLabel.frame.size.width, 14);
-            _refreshLayer.frame = CGRectMake(_refreshLayer.frame.origin.x, 0, _refreshLayer.frame.size.width, _refreshLayer.frame.size.height);
+    if(scrollView.isDragging){
+        CGFloat contentOffsetY = -scrollView.contentOffset.y - _originInsetTop;
+        _refreshLayer.contentOffsetY = contentOffsetY;
+        if(contentOffsetY < HEADER_VIEW_HEIGHT){
+            [self setPullStateText];
+        }else{
             [self setReleaseStateText];
-            return;
         }
+        if(contentOffsetY > HEADER_VIEW_HEIGHT) contentOffsetY = HEADER_VIEW_HEIGHT;
+        self.frame = CGRectMake(0, -contentOffsetY, CGRectGetMaxX(scrollView.bounds), contentOffsetY);
+        _textLabel.frame = CGRectMake(_textLabel.frame.origin.x, contentOffsetY/2-7, _textLabel.frame.size.width, 14);
+        _refreshLayer.frame = CGRectMake(_refreshLayer.frame.origin.x, contentOffsetY/2-HEADER_VIEW_HEIGHT/2, _refreshLayer.frame.size.width, _refreshLayer.frame.size.height);
+        _textLabel.layer.opacity = contentOffsetY / HEADER_VIEW_HEIGHT;
     }
 }
 
 - (void)setScrollViewContentInsetForLoading:(UIScrollView*)scrollView {
     UIEdgeInsets currentInsets = scrollView.contentInset;
-    currentInsets.top = _originInsetTop+HEADER_VIEW_HEIGHT;
+    currentInsets.top = _originInsetTop + HEADER_VIEW_HEIGHT;
     [UIView animateWithDuration:0.3
                           delay:0
                         options:UIViewAnimationOptionAllowUserInteraction|UIViewAnimationOptionBeginFromCurrentState
                      animations:^{
-                         scrollView.contentInset = currentInsets;
+                          scrollView.contentInset = currentInsets;
                      }
                      completion:NULL];
 }
@@ -173,7 +176,7 @@ const static CGFloat HEADER_VIEW_HEIGHT = 64.0;
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context{
     UIScrollView *scrollView = (UIScrollView*)object;
     if([keyPath isEqualToString:@"contentOffset"]){
-        [self DidScrollWithScrollView:scrollView];
+        [self didScrollWithScrollView:scrollView];
     }
     
     if([@"contentInset" isEqualToString:keyPath]){

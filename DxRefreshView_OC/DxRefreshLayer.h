@@ -13,8 +13,7 @@ typedef NS_ENUM(NSInteger, LayerState) {
     PULL_TO_TRANSITION = 0,
     PULL_TO_ARC = 1,
     PULL_TO_ROTATE = 2,
-    RELEASED = 3,
-    LOADING = 4
+    LOADING = 3
 };
 
 @interface DxRefreshLayer : CALayer

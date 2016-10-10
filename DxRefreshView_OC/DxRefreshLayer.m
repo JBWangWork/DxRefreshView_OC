@@ -60,7 +60,7 @@ const static CGFloat ARROW_LENGTH = 3.0f;
         [self drawLineToArcWithContext:ctx];
     }
     
-    if(_state == PULL_TO_ROTATE || _state == RELEASED || _state == LOADING){
+    if(_state == PULL_TO_ROTATE || _state == LOADING){
         [self drawReleaseStateWithContext:ctx];
     }
     CGContextDrawPath(ctx,kCGPathStroke);
@@ -71,12 +71,8 @@ const static CGFloat ARROW_LENGTH = 3.0f;
 #pragma mark ----- public
 
 -(void)startLoaingAnimation
-{
-    if(_state == PULL_TO_ROTATE){
-        _state = RELEASED;
-    }
-    
-    if(_state != RELEASED || _state == LOADING){
+{    
+    if(_state == LOADING){
         return;
     }
     [self playRotateAnimation];
@@ -114,35 +110,30 @@ const static CGFloat ARROW_LENGTH = 3.0f;
         _left = (width - _lineLength)/2.0;
         _top = (_height - _lineLength)/2.0;
         _right = _left + _lineLength;
-        _moveDistance = _lineLength/2+_top+2;
+        _moveDistance = _lineLength/2+_top;
     }
 }
 
 -(void)setContentOffsetY:(CGFloat)contentOffsetY
 {
     _contentOffsetY = contentOffsetY;
-    CGFloat progress = _contentOffsetY/self.bounds.size.height;
-    if(_state == PULL_TO_TRANSITION && _contentOffsetY > 0.5){
-        _state = PULL_TO_ARC;
-    }
-    
-    if(_state == PULL_TO_ARC && progress <= 0.5){
+    CGFloat rate = _contentOffsetY/self.bounds.size.height;
+    if(rate < 0.5){
         _state = PULL_TO_TRANSITION;
+        _angle = 0;
     }
     
-    if(_state == PULL_TO_ARC){
-        _angle = (progress-0.5)*2*MAX_ANGLE;
-        if(_angle >= MAX_ANGLE){
-            _state = PULL_TO_ROTATE;
-        }
+    if(rate >= 0.5 && rate <= 1){
+        _state = PULL_TO_ARC;
+        _angle = (rate-0.5)*2*MAX_ANGLE;
     }
     
-    if(_state == PULL_TO_ROTATE){
-        if(progress <= 1){
-            return;
-        }
-        _rotateAngle = (progress-1.0)*180;
+    if(rate > 1){
+        _state = PULL_TO_ROTATE;
+        _angle = MAX_ANGLE;
+        _rotateAngle = (rate-1.0)*180;
     }
+
     [self setNeedsDisplay];
 }
 
