@@ -32,11 +32,6 @@ refreshHeader.actionHandler = ^{
 [_scrollView.refreshHeader beginRefreshing];
 ```
 
-应用或界面退出时，移除observer:
 
-```Swift
-[_scrollView removeScrollObserver];
-```
-
-[#swift版本](https://github.com/StevenDXC/DxRefreshView) 
+[# swift版本](https://github.com/StevenDXC/DxRefreshView) 
 ---
