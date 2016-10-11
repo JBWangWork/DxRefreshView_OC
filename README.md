@@ -38,5 +38,5 @@ refreshHeader.actionHandler = ^{
 [_scrollView removeScrollObserver];
 ```
 
-[swift版本](https://github.com/StevenDXC/DxRefreshView) 
+[#swift版本](https://github.com/StevenDXC/DxRefreshView) 
 ---
